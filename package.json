@@ -1,0 +1,15 @@
+{
+    "name": "cc.aofg.volumetric-map",
+    "author": "Aler Denisov <aler.zampillo@gmail.com>",
+    "displayName": "Volumetric Map",
+    "version": "0.0.1",
+    "unity": "2018.1",
+    "description": "Volemetric assets based map",
+    "dependencies": {
+        "com.unity.collections": "0.0.9-preview.12",
+        "com.unity.entities": "0.0.12-preview.24",
+        "com.unity.jobs": "0.0.7-preview.6",
+        "com.unity.mathematics": "1.0.0-preview.1",
+        "com.unity.rendering.hybrid": "0.0.1-preview.4"
+    }
+}
