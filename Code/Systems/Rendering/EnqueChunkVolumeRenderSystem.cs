@@ -12,6 +12,7 @@ using VolumetricMap.Types;
 
 namespace VolumetricMap.Systems.Rendering
 {
+    [DisableAutoCreation]
     [UpdateInGroup(typeof(VolumetricMapGroup))]
     [UpdateBefore(typeof(ChunkStateBarrier))]
     public class EnqueChunkVolumeRenderSystem : JobComponentSystem
@@ -36,16 +37,17 @@ namespace VolumetricMap.Systems.Rendering
             
             public void Execute(Entity entity, int index, [ReadOnly] ref ChunkPosition pos, ref ChunkQueueIndex queueIndex, ref ChunkVolumesHash hashComponent)
             {
+                var list = new List<VolumetricAssetOctreeNode>();
                 queueIndex.Index = queueIndex.Index - 1;
-                
                 if (queueIndex.Index < 0)
                 {
                     Profiler.BeginSample("AssignVolumes.Chunk");
-                    queueIndex.Index = ChunkQueueIndex.QUEUE_SIZE;  
-                    var list = new List<VolumetricAssetOctreeNode>();
+                    queueIndex.Index = ChunkQueueIndex.QUEUE_SIZE;
                     
                     var position = pos.Value;
+                    Profiler.BeginSample("AssignVolumes.Chunk.GetColliding");
                     octree.Octree.GetColliding(list, new Bounds(position + new float3(0.5f), new float3(1) * 0.99f));
+                    Profiler.EndSample();
                     var volumesBuffer = simulationBufferElement[entity];
 
                     var hash = EMPTY_HASH;
@@ -60,7 +62,7 @@ namespace VolumetricMap.Systems.Rendering
 
                     if (hashComponent.VolumesHash != hash)
                     {
-                        Debug.Log("New chuck version: " + hash + " was: " + hashComponent.VolumesHash);
+//                        Debug.Log("New chuck version: " + hash + " was: " + hashComponent.VolumesHash);
                         hashComponent.VolumesHash = hash;
                         volumesBuffer.Clear();
                         
@@ -83,6 +85,44 @@ namespace VolumetricMap.Systems.Rendering
             }
         }
 
+        [RequireComponentTag(typeof(Chunk))]
+        public struct VolumeBufferToHashJob : IJobProcessComponentDataWithEntity<ChunkVolumesHash>
+        {
+            [NativeDisableParallelForRestriction]
+            public BufferFromEntity <ChunkVolumes> simulationBufferElement;
+
+            [ReadOnly]
+            [NativeDisableParallelForRestriction]
+            public ComponentDataFromEntity<VolumeBounds> volumeBounds;
+            
+            public EntityCommandBuffer.Concurrent ebc;
+
+            public void Execute(Entity entity, int index, ref ChunkVolumesHash hashComponent)
+            {
+                // TODO: On Change flag!
+                
+                var volumesBuffer = simulationBufferElement[entity];
+                var hash = EMPTY_HASH;
+
+                for (int volumeIndex = 0; volumeIndex < volumesBuffer.Length; volumeIndex++)
+                {
+                    var volume = volumesBuffer[volumeIndex].VolumeEntity;
+                    var bounds = volumeBounds[volume];
+                    
+                    hash = unchecked(hash ^ (bounds.Min.GetHashCode() << 4 * 8 ^
+                                             bounds.Max.GetHashCode() << 5 * 4 ^
+                                             volume.Index << 3 ^
+                                             volume.Version << 2 * 16));
+                }
+
+                // still same
+                if (hashComponent.VolumesHash == hash) return;
+                
+                ebc.AddComponent(index, entity, new UpdateRenderCommand());
+                hashComponent.VolumesHash = hash;
+            }
+        }
+        
         public struct EnableFilledChunksJob : IJobParallelFor
         {
             [DeallocateOnJobCompletion]
@@ -138,18 +178,26 @@ namespace VolumetricMap.Systems.Rendering
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            var reader = new OctreeReader(octree.octree);
-            
-            var handle = new AssignVolumesAndHashJob
+//            var reader = new OctreeReader(octree.octree);
+//            var handle = new AssignVolumesAndHashJob
+//            {
+//                octree = reader,
+//                ebc = barrier.CreateCommandBuffer().ToConcurrent(),
+//                simulationBufferElement = GetBufferFromEntity<ChunkVolumes>(false)
+//            }.Schedule(this, inputDeps);
+//            
+//            handle.Complete();
+//            reader.Dispose();
+
+
+            var handle = new VolumeBufferToHashJob
             {
-                octree = reader,
                 ebc = barrier.CreateCommandBuffer().ToConcurrent(),
-                simulationBufferElement = GetBufferFromEntity<ChunkVolumes>(false)
+                simulationBufferElement = GetBufferFromEntity<ChunkVolumes>(false),
+                volumeBounds = GetComponentDataFromEntity<VolumeBounds>(true)
             }.Schedule(this, inputDeps);
             
             handle.Complete();
-            reader.Dispose();
-            
             
             
             var disableChunksEntities = enabledChunks.ToEntityArray(Allocator.TempJob);
@@ -168,6 +216,7 @@ namespace VolumetricMap.Systems.Rendering
                 hashes = GetComponentDataFromEntity<ChunkVolumesHash>()
             }.Schedule(enableChunksEntities.Length, 64, handle);
             var stateHandle = JobHandle.CombineDependencies(disableHandle, enableHandle);
+            
             barrier.AddJobHandleForProducer(stateHandle);
 
             return stateHandle;

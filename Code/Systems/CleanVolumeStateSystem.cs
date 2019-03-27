@@ -6,6 +6,7 @@ using VolumetricMap.Systems.Rendering;
 
 namespace VolumetricMap.Systems
 {   
+    [DisableAutoCreation]
     [UpdateInGroup(typeof(VolumetricMapGroup))]
 //    [UpdateBefore(typeof(OneFrameFlagsBarrier))]
 //    [UpdateAfter(typeof(EndVolumetricMapRenderBarrier))]

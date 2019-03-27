@@ -6,9 +6,11 @@ using UnityEngine;
 using UnityEngine.Jobs;
 using VolumetricMap.Components;
 using VolumetricMap.Systems.Rendering;
+using Unity.Mathematics;
 
 namespace VolumetricMap.Systems
 {
+    [DisableAutoCreation]
     [UpdateInGroup(typeof(VolumetricMapGroup))]
 //    [UpdateBefore(typeof(EnqueChunkVolumeRenderSystem))]
 //    [UpdateAfter(typeof(VolumeChangedBarrier))]
@@ -21,9 +23,8 @@ namespace VolumetricMap.Systems
         {
             volumes = GetComponentGroup(
                 ComponentType.ReadOnly<Volume>(),
-                ComponentType.ReadOnly<VolumeSize>(), 
-                ComponentType.ReadOnly<VolumePivot>(),
-                ComponentType.ReadOnly<VolumePosition>(), 
+                ComponentType.ReadOnly<VolumeBounds>(),
+                ComponentType.ReadOnly<VolumePosition>(),
                 ComponentType.ReadOnly<VolumeChanged>());
             
             octree = World.GetExistingManager<VolumetricMapOctree>();
@@ -38,15 +39,16 @@ namespace VolumetricMap.Systems
             }
 
             var volumeEntities = volumes.GetEntityArray();
-            var volumeSizes = volumes.GetComponentDataArray<VolumeSize>();
-            var volumePivots = volumes.GetComponentDataArray<VolumePivot>();
-            var volumePositions = volumes.GetComponentDataArray<VolumePosition>();
+            var volumeBounds = volumes.GetComponentDataArray<VolumeBounds>();
 
             for (int index = 0; index < length; index++)
             {
-                var size = volumeSizes[index].Value.Vector3();
-                var position = volumePositions[index].Value.Vector3() / 32f;
-                octree.Add(volumeEntities[index], new Bounds(position + size * 0.5f / 32f, size / 32f));
+                var bounds = volumeBounds[index];
+                var boundsFloat = new Bounds();
+                boundsFloat.SetMinMax(
+                    bounds.Min.Vector3() / 32f,
+                    bounds.Max.Vector3() / 32f);
+                octree.Add(volumeEntities[index], boundsFloat);
             }
         }
     }

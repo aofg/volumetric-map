@@ -23,12 +23,33 @@ namespace VolumetricMap
             em = world.GetOrCreateManager<EntityManager>();
             registry = world.GetOrCreateManager<VolumeAssetRegistry>();
             octree = world.GetOrCreateManager<VolumetricMapOctree>();
-            registry.Baker = GetComponent<ChunkVolumeBaker>();
-            
+            registry.RenderTexturesBaker = GetComponent<ChunkVolumeBaker>();
+            registry.BufferBaker = GetComponent<BufferVolumeBaker>();
+
             foreach (var volumeAsset in VolumeAssets)
             {
                 registry.RegisterAsset(volumeAsset);
             }
+            
+
+            world.GetOrCreateManager<LoadVolumeAssetDataSystem>();
+            world.GetOrCreateManager<RecalculateVolumeBoundsSystem>();
+            world.GetOrCreateManager<SyncPositionToOffsetSystem>();
+            world.GetOrCreateManager<CleanVolumeStateSystem>();
+            world.GetOrCreateManager<AddVolumesToOctreeSystem>();
+            world.GetOrCreateManager<VolumetricMapChunks>();
+            world.GetOrCreateManager<EnqueChunkVolumeRenderSystem>();
+//            world.GetOrCreateManager<RenderingChunksSystem>();
+            world.GetOrCreateManager<RenderingChunksBufferSystem>();
+            world.GetOrCreateManager<RenderingChunksLayeredSystem>();
+//            world.GetOrCreateManager<RenderingChunksProceduralSystem>();
+//            world.GetOrCreateManager<RenderingChunksBilboardSystem>();
+
+            world.GetOrCreateManager<EjectVolumeToChunkSystem>();
+            world.GetOrCreateManager<InjectVolumeToChunkSystem>();
+            
+            
+            ScriptBehaviourUpdateOrder.UpdatePlayerLoop(world);
         }
 
         private void OnDrawGizmos()
@@ -47,10 +68,11 @@ namespace VolumetricMap
                 
                 foreach (var collidedNode in collidedEntities)
                 {
-                    var size = em.GetComponentData<VolumeSize>(collidedNode.VolumeEntity).Value.Vector3() / 32f;
-                    var position = em.GetComponentData<VolumePosition>(collidedNode.VolumeEntity).Value.Vector3() / 32f;
+                    var bounds = em.GetComponentData<VolumeBounds>(collidedNode.VolumeEntity);
                     
-                    Gizmos.DrawWireCube(position + size * 0.5f, size);
+                    var unityBounds = new Bounds();
+                    unityBounds.SetMinMax(bounds.Min.Vector3() / 32f, bounds.Max.Vector3() / 32f);
+                    Gizmos.DrawWireCube(unityBounds.center, unityBounds.size);
                 }
                 
 //                octree.octree.DrawCollisionChecks();

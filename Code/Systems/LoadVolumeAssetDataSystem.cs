@@ -5,6 +5,7 @@ using VolumetricMap.Components;
 
 namespace VolumetricMap.Systems
 {
+    [DisableAutoCreation]
     [UpdateInGroup(typeof(VolumetricMapGroup))]
     public class LoadVolumeAssetDataSystem : ComponentSystem
     {
@@ -13,8 +14,10 @@ namespace VolumetricMap.Systems
 
         protected override void OnCreateManager()
         {
-            volumesGroup = GetComponentGroup(ComponentType.ReadOnly<VolumeAsset>(),
-                ComponentType.Subtractive<VolumeSize>(), ComponentType.Subtractive<VolumePivot>());
+            volumesGroup = GetComponentGroup(
+                ComponentType.ReadOnly<VolumeAsset>(),
+                ComponentType.Subtractive<VolumeSize>(), 
+                ComponentType.Subtractive<VolumePivot>());
             registry = World.GetOrCreateManager<VolumeAssetRegistry>();
         }
 
@@ -50,8 +53,18 @@ namespace VolumetricMap.Systems
                 {
                     Value = asset.VolumePivot
                 });
-                
-                PostUpdateCommands.AddComponent(entity, new VolumeChanged());
+
+                if (!EntityManager.HasComponent<VolumeRotate>(entity))
+                {
+                    PostUpdateCommands.AddComponent(entity, new VolumeRotate());
+                }
+
+                PostUpdateCommands.AddComponent(entity, new VolumeBounds());
+
+                if (!EntityManager.HasComponent<VolumeChanged>(entity))
+                {
+                    PostUpdateCommands.AddComponent(entity, new VolumeChanged());
+                }
             }
         }
     }

@@ -28,6 +28,12 @@ namespace VolumetricMap.Components
     {
         public int3 Value;
     }
+
+    public struct VolumeBounds : IComponentData
+    {
+        public int3 Min;
+        public int3 Max;
+    }
     
     [System.Serializable]
     public struct VolumePosition : IComponentData

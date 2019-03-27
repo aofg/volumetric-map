@@ -7,8 +7,9 @@
         "Unity.Entities.Hybrid",
         "Unity.Rendering.Hybrid",
         "Unity.Transforms",
-        "VoxelRaymarching",
-        "Unity.Collections"
+        "Unity.Burst",
+        "Unity.Collections",
+        "VoxelRaymarching"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],

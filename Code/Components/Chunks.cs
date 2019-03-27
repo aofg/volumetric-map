@@ -38,7 +38,7 @@ namespace VolumetricMap.Components
     [System.Serializable]
     public struct ChunkQueueIndex : IComponentData
     {
-        public const int QUEUE_SIZE = 5;
+        public const int QUEUE_SIZE = 1;
         public int Index;
     }
 
@@ -52,6 +52,12 @@ namespace VolumetricMap.Components
     public struct ChunkVolumes : IBufferElementData
     {
         public Entity VolumeEntity;
+    }
+
+    [System.Serializable]
+    public struct ChunkBufferPtr : IComponentData
+    {
+        public uint Ptr;
     }
     
     

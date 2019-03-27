@@ -9,7 +9,8 @@ namespace VolumetricMap
     [DisableAutoCreation]
     public class VolumeAssetRegistry : ComponentSystem
     {
-        public ChunkVolumeBaker Baker;
+        public ChunkVolumeBaker RenderTexturesBaker;
+        public BufferVolumeBaker BufferBaker;
         public Dictionary<int, VolumeAsset> AssetDictionary = new Dictionary<int, VolumeAsset>();
 
         public void RegisterAsset(VolumeAsset asset)
